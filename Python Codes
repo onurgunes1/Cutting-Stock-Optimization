@@ -1,0 +1,40 @@
+import pandas as pd
+import numpy as np
+
+df = pd.read_excel ("C:\Onur GUNES Local Data\data_Genel\masaüstü\Kovan\deneme.xlsx")
+df["MASURA ADEDİ"]=df["MASURA ADEDİ"].apply(np.ceil)
+df["BOBİN ENİ"]=df["BOBİN ENİ"]+2
+df = df.astype({"MASURA ADEDİ":int,"TALEP NO":str})
+df["SINIF"]="M"+df["MAKİNE"].astype(str)+"_"+df["MASURA ÇAPI"].astype(str)
+all=list(set(df["SINIF"]))
+allsol=[]
+for i in all:
+    name=str(i)
+    y=df[(df["SINIF"]==i)][["TALEP NO","BOBİN ENİ","MASURA ADEDİ"]]
+    while y["MASURA ADEDİ"].sum()>0:
+        list=[]
+        list=y[y["MASURA ADEDİ"]!=0].values.tolist()
+        pos=[(0,0,0)]
+        r=1
+        for (j, w, q) in list:
+            while r<=q and r*w<=2400:
+                pos.append((j,w,r))
+                r+=1
+        least = 2400
+        for (j1, w1, r1) in pos:
+            for (j2, w2, r2) in pos:
+                for (j3, w3, r3) in pos:
+                    if 2400 - w1 * r1 - w2 * r2 - w3 * r3 < least and 2400 - w1 * r1 - w2 * r2 - w3 * r3 >= 0:
+                        if w1>=80 or w2>=80 or w3>=80:
+                            least = 2400 - w1 * r1 - w2 * r2 - w3 * r3
+                            (jf1,wf1,rf1) = (j1,w1,r1)
+                            (jf2,wf2,rf2) = (j2,w2,r2)
+                            (jf3,wf3,rf3) = (j3,w3,r3)
+                            opt1 = [name,least,(jf3,wf3,rf3), (jf2,wf2,rf2), (jf1,wf1,rf1)]
+        allsol.append(opt1)
+        y.loc[y["TALEP NO"] == jf1, "MASURA ADEDİ"] = y.loc[y["TALEP NO"] == jf1, "MASURA ADEDİ"] - rf1
+        y.loc[y["TALEP NO"] == jf2, "MASURA ADEDİ"] = y.loc[y["TALEP NO"] == jf2, "MASURA ADEDİ"] - rf2
+        y.loc[y["TALEP NO"] == jf3, "MASURA ADEDİ"] = y.loc[y["TALEP NO"] == jf3, "MASURA ADEDİ"] - rf3
+final=pd.DataFrame(allsol)
+final.columns =["Makine","Fire","İş 1","İş 2","İş 3"]
+final.to_excel("C:\Onur GUNES Local Data\data_Genel\masaüstü\Kovan\output.xlsx")
